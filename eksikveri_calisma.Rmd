@@ -1,0 +1,129 @@
+---
+title: "ödev_eksik veri"
+output: html_document
+---
+
+
+
+```{r}
+
+library(ISwR)
+veri<-mtcars
+
+veri[sample(1:nrow(veri),3),"mpg"] <-NA
+
+veri[sample(1:nrow(veri),2),"qsec"] <-NA
+
+summary(veri)
+
+anyNA(veri)
+
+```
+
+```{r}
+
+
+#yeni veri setindeki eksik degerler
+
+colSums(is.na(veri)) #degisken bazinda kaçar eksik veri var
+
+which(is.na(veri)) #eksik verilerin konumlari
+
+#veri[!complete.cases(veri),] # eksik gözlemlere erişmeye yarar
+
+#veri[complete.cases(veri),] # tam gözlemlere erişmeye yarar
+
+```
+# H0: eksik veriler tamamen rastgele dagitilmistir
+#H1: rastgele dagilmamistir
+rastgeleligi sorgulayalım
+```{r}
+
+library(naniar)
+t<-mcar_test(veri)
+
+attributes(t)
+t$p.value
+
+
+
+
+
+
+```
+#p_value 0.94 cikti yani secim rastgele
+#Eksik veri yapisini md.pattern ile inceleme
+#27 gözlem tam eksik veriler satırlarda kesismiyor
+```{r}
+
+library(mice)
+md.pattern(veri)
+```
+
+
+##VIM ile eksik veriyi görsellestirme
+```{r}
+library(VIM)
+
+aggr_plot<- aggr(veri,
+col=c('navyblue','red'),
+numbers=TRUE,
+sortVars=TRUE, 
+labels=names(veri),
+cex.axis=.7,
+gap=3, 
+ylab=c("Eksik veri yüzdesi
+","Eksik Veri Kalıbı"))
+
+aggr_plot
+```
+##Eksik degerleri uygun yöntemle doldurma
+Missforest
+
+```{r}
+library(missForest)
+library(ISLR)
+library(DMwR2)
+veri<-mtcars
+veri[sample(1:nrow(veri),3),"mpg"] <-NA
+
+veri[sample(1:nrow(veri),2),"qsec"] <-NA
+rf_data<-missForest(veri,ntree=7)
+
+l<-sapply(veri,function(x) which(is.na(x)))
+
+summary(rf_data$ximp)
+
+rf_data<-rf_data$ximp
+
+
+
+veri[c(l$mpg),]$mpg #indexe göre degere bakma
+veri[c(l$qsec),]$qsec 
+
+rf_data[c(l$mpg),]$mpg #karsilik gelen degere bakma
+rf_data[c(l$qsec),]$qsec
+
+
+knn_data<-knnImputation(veri,k=5) # komsularin agirlikli ortalamalarını atar
+
+mean(veri[c(l$mpg),]$mpg - knn_data[c(l$mpg),]$mpg) # esitligin sol tarafi orjinal veri setindeki degerler, sag tarafi eksikleri doldurulan veri seti
+mean(veri[c(l$qsec),]$qsec - knn_data[c(l$qsec),]$qsec) 
+
+summary(veri$mpg)
+summary(veri$qsec)
+
+anyNA(knn_data)
+
+```
+
+
+
+
+
+
+
+
+
+
+
